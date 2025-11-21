@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shopee Affiliate Converter (Local v2.5)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .loading-overlay {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(2px);
+        }
+        textarea::-webkit-scrollbar { width: 8px; }
+        textarea::-webkit-scrollbar-track { background: #f1f1f1; }
+        textarea::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        textarea::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        /* Toast animation */
+        @keyframes fade-in-out {
+            0% { opacity: 0; transform: translateY(20px); }
+            10% { opacity: 1; transform: translateY(0); }
+            90% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-20px); }
+        }
+        .toast-notification {
+            animation: fade-in-out 3s forwards;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen py-8 px-4">
+
+    <div class="max-w-3xl mx-auto bg-white rounded-xl shadow-2xl overflow-hidden relative">
+        
+        <!-- Header -->
+        <div class="bg-indigo-700 p-6 text-center relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-full opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+            <h1 class="text-3xl font-extrabold text-white uppercase tracking-wider relative z-10">
+                <i class="fas fa-magic mr-2"></i>Shopee Affiliate Tool
+            </h1>
+            <p class="text-indigo-200 mt-2 text-sm relative z-10">Phiên bản tối ưu hóa cho PC Cá nhân (Strict Mode)</p>
+        </div>
+
+        <div class="p-6 space-y-8">
+            
+            <!-- KHU VỰC 1: CẤU HÌNH -->
+            <div class="bg-white border border-indigo-100 rounded-xl p-5 shadow-sm relative">
+                <div class="absolute top-0 left-0 w-1 h-full bg-indigo-500 rounded-l-xl"></div>
+                
+                <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-sliders-h text-indigo-600 mr-2"></i>Cài đặt
+                </h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
+                    <!-- Input: TinyURL API Key -->
+                    <div class="relative group">
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">TinyURL API Key</label>
+                        <div class="relative">
+                            <input type="password" id="apiKeyInput" 
+                                class="w-full pl-3 pr-24 py-2.5 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition text-sm" 
+                                placeholder="Nhập API Key...">
+                            <div class="absolute right-1 top-1/2 -translate-y-1/2 flex gap-1">
+                                <button onclick="pasteToField('apiKeyInput')" title="Dán" class="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition cursor-pointer">
+                                    <i class="fas fa-paste text-lg"></i>
+                                </button>
+                                <button onclick="clearField('apiKeyInput')" title="Xóa" class="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition cursor-pointer">
+                                    <i class="fas fa-times text-lg"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Input: Affiliate ID -->
+                    <div class="relative group">
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">Affiliate ID (Shopee)</label>
+                        <div class="relative">
+                            <input type="text" id="affIdInput" 
+                                class="w-full pl-3 pr-24 py-2.5 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition text-sm" 
+                                placeholder="Ví dụ: 123456789">
+                            <div class="absolute right-1 top-1/2 -translate-y-1/2 flex gap-1">
+                                <button onclick="pasteToField('affIdInput')" title="Dán" class="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition cursor-pointer">
+                                    <i class="fas fa-paste text-lg"></i>
+                                </button>
+                                <button onclick="clearField('affIdInput')" title="Xóa" class="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition cursor-pointer">
+                                    <i class="fas fa-times text-lg"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Buttons Group -->
+                <div class="flex flex-col md:flex-row items-center justify-between gap-4 border-t border-gray-100 pt-4">
+                    <div class="flex gap-3 text-xs text-gray-500 order-2 md:order-1">
+                        <button onclick="exportConfig()" class="hover:text-indigo-600 flex items-center gap-1 transition">
+                            <i class="fas fa-file-export"></i> Xuất Cài Đặt
+                        </button>
+                        <span class="text-gray-300">|</span>
+                        <label for="fileInput" class="hover:text-indigo-600 flex items-center gap-1 cursor-pointer transition">
+                            <i class="fas fa-file-import"></i> Nhập Cài Đặt
+                        </label>
+                        <input type="file" id="fileInput" accept=".json" class="hidden" onchange="importConfig(this)">
+                    </div>
+
+                    <button onclick="saveSettings()" class="order-1 md:order-2 w-full md:w-auto bg-indigo-600 text-white px-8 py-2.5 rounded-lg hover:bg-indigo-700 shadow-md hover:shadow-lg transform active:scale-95 transition font-semibold text-sm flex items-center justify-center gap-2">
+                        <i class="fas fa-save"></i> Lưu Cài Đặt
+                    </button>
+                </div>
+            </div>
+
+            <!-- KHU VỰC 2: NỘI DUNG & XỬ LÝ -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Input Column -->
+                <div class="flex flex-col h-full">
+                    <div class="flex justify-between items-end mb-2">
+                        <label class="font-bold text-gray-800 text-lg">Văn bản gốc</label>
+                        <button onclick="pasteSample()" class="text-xs text-indigo-600 hover:underline px-2 py-1">
+                            Mẫu thử
+                        </button>
+                    </div>
+                    <div class="relative flex-grow">
+                        <textarea id="inputText" class="w-full h-80 p-4 pr-12 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none resize-none text-sm leading-relaxed shadow-inner transition" 
+                        placeholder="Dán nội dung bài đăng Facebook/Tiktok có chứa link Shopee vào đây..."></textarea>
+                        
+                        <button onclick="pasteToField('inputText')" title="Dán nội dung" class="absolute top-2 right-2 p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition bg-white/80 backdrop-blur-sm border border-transparent hover:border-indigo-100 cursor-pointer">
+                            <i class="fas fa-paste text-lg"></i>
+                        </button>
+
+                        <div class="absolute bottom-3 left-4 right-4 pointer-events-none">
+                            <p class="text-xs text-orange-600 bg-orange-50 border border-orange-100 rounded px-2 py-1 inline-block opacity-90">
+                                <i class="fas fa-exclamation-circle mr-1"></i>Chỉnh sửa văn bản chuẩn chỉ trước khi chuyển đổi nhé!
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Output Column -->
+                <div class="flex flex-col h-full">
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="font-bold text-gray-800 text-lg">Kết quả</label>
+                        <span id="status" class="text-xs text-gray-500 italic bg-gray-100 px-2 py-1 rounded">Sẵn sàng</span>
+                    </div>
+                    <div class="relative flex-grow">
+                        <textarea id="outputText" readonly class="w-full h-80 p-4 pr-12 border border-gray-300 bg-slate-50 rounded-xl focus:outline-none resize-none text-sm leading-relaxed text-gray-600 shadow-inner" 
+                        placeholder="Kết quả sau khi chuyển đổi và rút gọn sẽ hiện ở đây..."></textarea>
+                        
+                        <button onclick="copyOutput()" title="Copy kết quả" class="absolute top-2 right-2 p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition bg-white/80 backdrop-blur-sm border border-transparent hover:border-indigo-100 cursor-pointer">
+                            <i class="far fa-copy text-lg"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Big Action Button -->
+            <button id="convertBtn" onclick="processLinks()" class="group w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold py-4 rounded-xl shadow-lg hover:shadow-2xl hover:from-green-600 hover:to-emerald-700 transition-all transform active:scale-[0.99] text-lg flex items-center justify-center">
+                <span class="mr-2 group-hover:animate-pulse"><i class="fas fa-sync-alt"></i></span>
+                CHUYỂN ĐỔI & RÚT GỌN NGAY
+            </button>
+
+        </div>
+        
+        <!-- Footer -->
+        <div class="bg-gray-50 border-t border-gray-200 p-4 text-center text-xs text-gray-400">
+            Local Tool v2.5 &bull; Không lưu trữ dữ liệu cá nhân
+        </div>
+
+        <!-- Toast Notification Container -->
+        <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2"></div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loading" class="hidden fixed inset-0 loading-overlay flex flex-col items-center justify-center z-50">
+        <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-indigo-600 border-solid mb-4"></div>
+        <p class="text-indigo-800 font-bold text-lg animate-pulse" id="loadingText">Đang xử lý...</p>
+    </div>
+
+    <script>
+        // --- 1. QUẢN LÝ CẤU HÌNH (SETTINGS) ---
+
+        window.onload = function() {
+            const savedApiKey = localStorage.getItem('tinyurl_api_key');
+            const savedAffId = localStorage.getItem('shopee_aff_id');
+            
+            if (savedApiKey) document.getElementById('apiKeyInput').value = savedApiKey;
+            if (savedAffId) document.getElementById('affIdInput').value = savedAffId;
+        };
+
+        function saveSettings() {
+            // Lấy giá trị và tự động lọc bỏ ký tự lạ ngay khi lưu
+            let apiKey = document.getElementById('apiKeyInput').value.trim();
+            // Regex: Chỉ giữ lại ký tự ASCII in được (từ 33-126), loại bỏ khoảng trắng, ký tự ẩn
+            apiKey = apiKey.replace(/[^\x21-\x7E]/g, '');
+            
+            const affId = document.getElementById('affIdInput').value.trim();
+            
+            if (!apiKey || !affId) {
+                alert("Vui lòng nhập đầy đủ thông tin trước khi lưu!");
+                return;
+            }
+            
+            // Cập nhật lại giá trị đã làm sạch vào ô input
+            document.getElementById('apiKeyInput').value = apiKey;
+
+            localStorage.setItem('tinyurl_api_key', apiKey);
+            localStorage.setItem('shopee_aff_id', affId);
+            showToast("Đã lưu cài đặt thành công!", "success");
+            
+            const btn = document.querySelector('button[onclick="saveSettings()"]');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-check"></i> Đã Lưu!';
+            btn.classList.replace('bg-indigo-600', 'bg-green-600');
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+                btn.classList.replace('bg-green-600', 'bg-indigo-600');
+            }, 2000);
+        }
+
+        function clearField(id) {
+            document.getElementById(id).value = '';
+            document.getElementById(id).focus();
+        }
+
+        // SỬA LỖI PASTE: Tương thích tốt hơn với bảo mật trình duyệt
+        async function pasteToField(id) {
+            const el = document.getElementById(id);
+            if (!el) return;
+
+            try {
+                el.focus();
+                const text = await navigator.clipboard.readText();
+                el.value = text;
+                showToast("Đã dán nội dung!", "success");
+            } catch (err) {
+                console.warn("Paste blocked by browser:", err);
+                // Nếu bị chặn, focus vào ô và nhắc người dùng nhấn Ctrl+V
+                el.focus();
+                el.select(); // Chọn toàn bộ text cũ (nếu có) để paste đè lên dễ hơn
+                showToast("Trình duyệt chặn tự động dán. Hãy nhấn Ctrl+V", "warning");
+            }
+        }
+
+        function exportConfig() {
+            const apiKey = document.getElementById('apiKeyInput').value.trim();
+            const affId = document.getElementById('affIdInput').value.trim();
+
+            if (!apiKey && !affId) {
+                showToast("Chưa có dữ liệu để xuất!", "error");
+                return;
+            }
+
+            const config = { tinyurl_api_key: apiKey, shopee_aff_id: affId };
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(config));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", "config_shopee_tool.json");
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        }
+
+        function importConfig(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const config = JSON.parse(e.target.result);
+                    if (config.tinyurl_api_key) {
+                        document.getElementById('apiKeyInput').value = config.tinyurl_api_key;
+                        localStorage.setItem('tinyurl_api_key', config.tinyurl_api_key);
+                    }
+                    if (config.shopee_aff_id) {
+                        document.getElementById('affIdInput').value = config.shopee_aff_id;
+                        localStorage.setItem('shopee_aff_id', config.shopee_aff_id);
+                    }
+                    showToast("Nhập cấu hình thành công!", "success");
+                } catch (err) { alert("File JSON không hợp lệ!"); }
+            };
+            reader.readAsText(file);
+        }
+
+        // --- 2. LOGIC XỬ LÝ CHÍNH ---
+
+        async function processLinks() {
+            // XÓA TRẮNG KẾT QUẢ CŨ TRƯỚC KHI CHẠY
+            document.getElementById('outputText').value = '';
+            
+            // Lấy API Key và làm sạch triệt để một lần nữa trước khi dùng
+            let apiKey = document.getElementById('apiKeyInput').value.trim();
+            apiKey = apiKey.replace(/[^\x21-\x7E]/g, ''); 
+
+            const affId = document.getElementById('affIdInput').value.trim();
+            const content = document.getElementById('inputText').value;
+
+            if (!apiKey || !affId) {
+                showToast("Thiếu thông tin cấu hình! Hãy kiểm tra API Key.", "error");
+                return;
+            }
+            if (!content.trim()) {
+                showToast("Vui lòng nhập nội dung cần chuyển đổi!", "error");
+                return;
+            }
+
+            setLoading(true);
+            showStatus("Đang quét link...", "text-blue-600");
+
+            let newText = content;
+            const shopeeLinkRegex = /(https?:\/\/(?:shopee\.[a-z]{2,3}(?:\.[a-z]{2})?|shope\.ee)[\/\w\.-]*[^\s\.\,]*)/gi;
+            const matches = content.match(shopeeLinkRegex);
+            const uniqueLinks = [...new Set(matches)];
+
+            if (!uniqueLinks || uniqueLinks.length === 0) {
+                setLoading(false);
+                showStatus("Không tìm thấy link Shopee nào.", "text-orange-500");
+                return;
+            }
+
+            showStatus(`Tìm thấy ${uniqueLinks.length} link. Đang xử lý...`, "text-blue-600");
+            const subId = "local-pc-tool"; 
+
+            console.log('--- BẮT ĐẦU XỬ LÝ LINK ---');
+            
+            let hasError = false; // Cờ đánh dấu lỗi
+
+            for (let i = 0; i < uniqueLinks.length; i++) {
+                const originalLink = uniqueLinks[i];
+                updateLoadingText(`Đang xử lý ${i + 1}/${uniqueLinks.length}...`);
+
+                try {
+                    const encodedLink = encodeURIComponent(originalLink);
+                    const longAffiliateLink = `https://s.shopee.vn/an_redir?origin_link=${encodedLink}&affiliate_id=${affId}&sub_id=${subId}`;
+                    
+                    if (i > 0) await new Promise(r => setTimeout(r, 200));
+
+                    const shortLink = await shortenWithTinyURL(longAffiliateLink, apiKey);
+
+                    if (shortLink) {
+                        const escapedLink = originalLink.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+                        const replacementRegex = new RegExp(escapedLink, 'g');
+                        newText = newText.replace(replacementRegex, shortLink);
+                        console.log(`[Link ${i+1}] OK:`, shortLink);
+                    } else {
+                        // === QUAN TRỌNG: GẶP LỖI LÀ DỪNG NGAY ===
+                        console.error(`[Link ${i+1}] LỖI: API trả về null`);
+                        hasError = true;
+                        break; // Thoát khỏi vòng lặp ngay lập tức
+                    }
+                } catch (error) {
+                    console.error("Lỗi ngoại lệ:", error);
+                    hasError = true;
+                    break;
+                }
+            }
+
+            setLoading(false);
+
+            if (hasError) {
+                // Nếu có lỗi: Thông báo, KHÔNG hiện kết quả, KHÔNG copy
+                showStatus("Đã xảy ra lỗi! Quá trình bị hủy.", "text-red-600 font-bold");
+                showToast("Lỗi: Kiểm tra lại API Key hoặc mạng. Không copy kết quả lỗi.", "error");
+                // Đảm bảo ô kết quả trống
+                document.getElementById('outputText').value = ''; 
+            } else {
+                // Nếu thành công tất cả: Hiện kết quả và Copy
+                document.getElementById('outputText').value = newText;
+                showStatus("Hoàn tất! Đã copy vào Clipboard.", "text-green-600 font-bold");
+                setTimeout(copyOutput, 100);
+            }
+            
+            console.log('--- KẾT THÚC XỬ LÝ ---');
+        }
+
+        async function shortenWithTinyURL(longUrl, token) {
+            const url = "https://api.tinyurl.com/create";
+            const body = { url: longUrl, domain: "tinyurl.com" };
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}` 
+                    },
+                    body: JSON.stringify(body)
+                });
+                
+                const data = await response.json();
+                if (response.ok && data.data) {
+                    return data.data.tiny_url;
+                } else {
+                    console.error("TinyURL Error:", data);
+                    return null; // Trả về null để báo hiệu lỗi
+                }
+            } catch (e) {
+                console.error("Network Error:", e);
+                return null;
+            }
+        }
+
+        // --- 3. TIỆN ÍCH UI ---
+
+        function setLoading(isLoading) {
+            const loader = document.getElementById('loading');
+            if (isLoading) loader.classList.remove('hidden');
+            else loader.classList.add('hidden');
+        }
+
+        function updateLoadingText(text) {
+            document.getElementById('loadingText').innerText = text;
+        }
+
+        function showStatus(msg, classColor) {
+            const el = document.getElementById('status');
+            el.innerText = msg;
+            el.className = "text-xs italic px-2 py-1 rounded " + classColor;
+        }
+
+        function pasteSample() {
+            const sample = "LOCK&LOCK SALE 50%\nLink shop: https://shopee.vn/shop/55771655\nBình giữ nhiệt: https://shopee.vn/a-i.55771655.44321383404";
+            document.getElementById('inputText').value = sample;
+        }
+
+        // SỬA LỖI COPY TỰ ĐỘNG: Sử dụng execCommand làm ưu tiên cho môi trường Local
+        function copyOutput() {
+            const outputText = document.getElementById('outputText');
+            if (!outputText.value) return;
+            
+            // Force focus và select để execCommand hoạt động
+            outputText.focus();
+            outputText.select();
+            
+            let success = false;
+            try {
+                // Phương pháp cũ nhưng ổn định trên local file
+                success = document.execCommand('copy');
+            } catch (err) {
+                console.warn("execCommand failed", err);
+            }
+
+            if (success) {
+                showToast("Đã copy kết quả!", "success");
+            } else {
+                // Fallback sang API mới nếu execCommand thất bại
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                     navigator.clipboard.writeText(outputText.value)
+                        .then(() => showToast("Đã copy kết quả!", "success"))
+                        .catch(() => showToast("Không thể copy tự động. Hãy nhấn nút Copy thủ công", "warning"));
+                } else {
+                    showToast("Không thể copy tự động. Hãy nhấn nút Copy thủ công", "warning");
+                }
+            }
+        }
+
+        // Toast Notification Helper
+        function showToast(msg, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            let bgClass = type === 'success' ? 'bg-green-600' : (type === 'error' ? 'bg-red-600' : 'bg-orange-500');
+            
+            toast.className = `${bgClass} text-white px-6 py-3 rounded-lg shadow-lg text-sm font-medium flex items-center gap-2 toast-notification transform transition-all`;
+            
+            let icon = type === 'success' ? '<i class="fas fa-check-circle"></i>' : (type === 'error' ? '<i class="fas fa-exclamation-circle"></i>' : '<i class="fas fa-info-circle"></i>');
+            
+            toast.innerHTML = `${icon} ${msg}`;
+            
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
