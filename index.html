@@ -306,7 +306,8 @@
             showStatus("Đang quét link...", "text-blue-600");
 
             let newText = content;
-            const shopeeLinkRegex = /(https?:\/\/(?:shopee\.[a-z]{2,3}(?:\.[a-z]{2})?|shope\.ee)[\/\w\.-]*[^\s\.\,]*)/gi;
+            // Chỉ cần kiểm tra bất kỳ link nào bắt đầu bằng http(s) và chứa shopee.vn hoặc shope.ee
+            const shopeeLinkRegex = /(https?:\/\/[^\s]+(shopee\.[a-z]{2,3}(?:\.[a-z]{2})?|shope\.ee)[^\s]*)/gi;
             const matches = content.match(shopeeLinkRegex);
             const uniqueLinks = [...new Set(matches)];
 
