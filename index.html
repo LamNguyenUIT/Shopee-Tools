@@ -306,8 +306,7 @@
             showStatus("Đang quét link...", "text-blue-600");
 
             let newText = content;
-            // Chỉ cần kiểm tra bất kỳ link nào bắt đầu bằng http(s) và chứa shopee.vn hoặc shope.ee
-            const shopeeLinkRegex = /(https?:\/\/[^\s]+(shopee\.[a-z]{2,3}(?:\.[a-z]{2})?|shope\.ee)[^\s]*)/gi;
+            const shopeeLinkRegex = /(https?:\/\/(?:shopee\.[a-z]{2,3}(?:\.[a-z]{2})?|shope\.ee)(?:[^\s]*)?)/gi;
             const matches = content.match(shopeeLinkRegex);
             const uniqueLinks = [...new Set(matches)];
 
@@ -329,13 +328,17 @@
                 updateLoadingText(`Đang xử lý ${i + 1}/${uniqueLinks.length}...`);
 
                 try {
-                    const encodedLink = encodeURIComponent(originalLink);
+                    // Kiểm tra xem link đã được encode hay chưa
+                    const isAlreadyEncoded = decodeURIComponent(originalLink) !== originalLink;
+                    const encodedLink = isAlreadyEncoded ? originalLink : encodeURIComponent(originalLink);
+                    console.log(`[Link ${i+1}] Original:`, originalLink);
+                    console.log(`[Link ${i+1}] Encoded:`, encodedLink);
                     const longAffiliateLink = `https://s.shopee.vn/an_redir?origin_link=${encodedLink}&affiliate_id=${affId}&sub_id=${subId}`;
-                    
+                    console.log(`[Link ${i+1}] Affiliate:`, longAffiliateLink);
                     if (i > 0) await new Promise(r => setTimeout(r, 200));
 
                     const shortLink = await shortenWithTinyURL(longAffiliateLink, apiKey);
-
+                    console.log(`[Link ${i+1}] Shortened:`, shortLink);
                     if (shortLink) {
                         const escapedLink = originalLink.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
                         const replacementRegex = new RegExp(escapedLink, 'g');
