@@ -39,7 +39,7 @@
             <h1 class="text-3xl font-extrabold text-white uppercase tracking-wider relative z-10">
                 <i class="fas fa-magic mr-2"></i>Shopee Affiliate Tool
             </h1>
-            <p class="text-indigo-200 mt-2 text-sm relative z-10">Phiên bản tối ưu hóa cho PC Cá nhân (Strict Mode)</p>
+            <p class="text-indigo-200 mt-2 text-sm relative z-10">Phiên bản tối ưu hóa v2.6</p>
         </div>
 
         <div class="p-6 space-y-8">
@@ -129,7 +129,7 @@
 
                         <div class="absolute bottom-3 left-4 right-4 pointer-events-none">
                             <p class="text-xs text-orange-600 bg-orange-50 border border-orange-100 rounded px-2 py-1 inline-block opacity-90">
-                                <i class="fas fa-exclamation-circle mr-1"></i>Chỉnh sửa văn bản chuẩn chỉ trước khi chuyển đổi nhé!
+                                <i class="fas fa-exclamation-circle mr-1"></i>Bước 1: Làm sạch link qua API Workers → Bước 2: Tạo affiliate link
                             </p>
                         </div>
                     </div>
@@ -155,14 +155,14 @@
             <!-- Big Action Button -->
             <button id="convertBtn" onclick="processLinks()" class="group w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold py-4 rounded-xl shadow-lg hover:shadow-2xl hover:from-green-600 hover:to-emerald-700 transition-all transform active:scale-[0.99] text-lg flex items-center justify-center">
                 <span class="mr-2 group-hover:animate-pulse"><i class="fas fa-sync-alt"></i></span>
-                CHUYỂN ĐỔI & RÚT GỌN NGAY
+                TẠO LINK
             </button>
 
         </div>
         
         <!-- Footer -->
         <div class="bg-gray-50 border-t border-gray-200 p-4 text-center text-xs text-gray-400">
-            Local Tool v2.5 &bull; Không lưu trữ dữ liệu cá nhân
+            Local Tool v2.6 &bullet; - &bullet; Không lưu trữ dữ liệu cá nhân
         </div>
 
         <!-- Toast Notification Container -->
@@ -282,6 +282,50 @@
 
         // --- 2. LOGIC XỬ LÝ CHÍNH ---
 
+        // Bước 1: Gửi link qua Cloudflare Workers API để làm sạch
+        async function cleanShopeeLink(dirtyLink) {
+            const apiUrl = 'https://shopee-link.lamtypre.workers.dev/';
+            
+            try {
+                // Gửi GET request với URL parameter
+                const response = await fetch(`${apiUrl}?url=${encodeURIComponent(dirtyLink)}`);
+                const data = await response.json();
+                
+                if (data && data.final_url) {
+                    console.log(`[Clean] Input: ${dirtyLink}`);
+                    console.log(`[Clean] Output: ${data.final_url}`);
+                    
+                    // Trích xuất link sản phẩm chuẩn
+                    const cleanedUrl = data.final_url;
+                    const productLink = extractProductUrl(cleanedUrl);
+                    console.log(`[Clean] Extracted: ${productLink}`);
+                    
+                    return productLink;
+                } else {
+                    console.error(`[Clean] Error: Phản hồi không hợp lệ từ server`);
+                    return null;
+                }
+            } catch (error) {
+                console.error("Cloudflare Workers API Error:", error);
+                return null;
+            }
+        }
+
+        // Trích xuất link sản phẩm chuẩn từ link đã làm sạch
+        function extractProductUrl(cleanedUrl) {
+            // Loại bỏ các query parameters, chỉ giữ phần link chính
+            // Ví dụ: https://shopee.vn/opaanlp/1366408246/28962920663?cid=... → https://shopee.vn/opaanlp/1366408246/28962920663
+            // Hoặc: https://shopee.vn/product/1366408246/28962920663?... → https://shopee.vn/product/1366408246/28962920663
+            
+            const urlObj = new URL(cleanedUrl);
+            const pathname = urlObj.pathname;
+            const origin = urlObj.origin;
+            
+            // Kết hợp origin + pathname để loại bỏ mọi query params
+            const productUrl = origin + pathname;
+            return productUrl;
+        }
+
         async function processLinks() {
             // XÓA TRẮNG KẾT QUẢ CŨ TRƯỚC KHI CHẠY
             document.getElementById('outputText').value = '';
@@ -306,13 +350,14 @@
             showStatus("Đang quét link...", "text-blue-600");
 
             let newText = content;
-            const shopeeLinkRegex = /(https?:\/\/(?:shopee\.[a-z]{2,3}(?:\.[a-z]{2})?|shope\.ee)(?:[^\s]*)?)/gi;
-            const matches = content.match(shopeeLinkRegex);
+            // Bắt tất cả URL (bất kỳ loại nào, không chỉ Shopee)
+            const urlRegex = /(https?:\/\/[^\s]+)/gi;
+            const matches = content.match(urlRegex);
             const uniqueLinks = [...new Set(matches)];
 
             if (!uniqueLinks || uniqueLinks.length === 0) {
                 setLoading(false);
-                showStatus("Không tìm thấy link Shopee nào.", "text-orange-500");
+                showStatus("Không tìm thấy URL nào.", "text-orange-500");
                 return;
             }
 
@@ -322,36 +367,80 @@
             console.log('--- BẮT ĐẦU XỬ LÝ LINK ---');
             
             let hasError = false; // Cờ đánh dấu lỗi
+            const cleanedLinksMap = new Map(); // Lưu map giữa link gốc và link đã làm sạch
 
+            // ========== BƯỚC 1: LÀM SẠCH LINK QUA CLOUDFLARE WORKERS ==========
+            console.log('--- BƯỚC 1: LÀM SẠCH LINK QUA CLOUDFLARE WORKERS ---');
+            
             for (let i = 0; i < uniqueLinks.length; i++) {
                 const originalLink = uniqueLinks[i];
-                updateLoadingText(`Đang xử lý ${i + 1}/${uniqueLinks.length}...`);
+                updateLoadingText(`[Bước 1] Làm sạch link ${i + 1}/${uniqueLinks.length}...`);
+
+                try {
+                    const cleanedLink = await cleanShopeeLink(originalLink);
+                    
+                    if (cleanedLink) {
+                        cleanedLinksMap.set(originalLink, cleanedLink);
+                        console.log(`[Bước 1] Link ${i+1} OK: ${cleanedLink}`);
+                    } else {
+                        console.error(`[Bước 1] Link ${i+1} FAILED: Không thể làm sạch`);
+                        hasError = true;
+                        break;
+                    }
+
+                    if (i > 0) await new Promise(r => setTimeout(r, 300)); // Delay tránh rate limit
+                } catch (error) {
+                    console.error(`[Bước 1] Lỗi ngoại lệ:`, error);
+                    hasError = true;
+                    break;
+                }
+            }
+
+            if (hasError) {
+                setLoading(false);
+                showStatus("Lỗi khi làm sạch link! Quá trình bị hủy.", "text-red-600 font-bold");
+                showToast("Lỗi: Không thể kết nối API Cloudflare Workers. Vui lòng kiểm tra mạng.", "error");
+                document.getElementById('outputText').value = '';
+                console.log('--- KẾT THÚC XỬ LÝ (LỖI) ---');
+                return;
+            }
+
+            // ========== BƯỚC 2: TẠO AFFILIATE LINK VÀ RÚT GỌN ==========
+            console.log('--- BƯỚC 2: TẠO AFFILIATE LINK VÀ RÚT GỌN ---');
+            
+            for (let i = 0; i < uniqueLinks.length; i++) {
+                const originalLink = uniqueLinks[i];
+                const cleanedLink = cleanedLinksMap.get(originalLink);
+                updateLoadingText(`[Bước 2] Xử lý link ${i + 1}/${uniqueLinks.length}...`);
 
                 try {
                     // Kiểm tra xem link đã được encode hay chưa
-                    const isAlreadyEncoded = decodeURIComponent(originalLink) !== originalLink;
-                    const encodedLink = isAlreadyEncoded ? originalLink : encodeURIComponent(originalLink);
-                    console.log(`[Link ${i+1}] Original:`, originalLink);
-                    console.log(`[Link ${i+1}] Encoded:`, encodedLink);
+                    const isAlreadyEncoded = decodeURIComponent(cleanedLink) !== cleanedLink;
+                    const encodedLink = isAlreadyEncoded ? cleanedLink : encodeURIComponent(cleanedLink);
+                    console.log(`[Bước 2] Link ${i+1} Original:`, cleanedLink);
+                    console.log(`[Bước 2] Link ${i+1} Encoded:`, encodedLink);
                     const longAffiliateLink = `https://s.shopee.vn/an_redir?origin_link=${encodedLink}&affiliate_id=${affId}&sub_id=${subId}`;
-                    console.log(`[Link ${i+1}] Affiliate:`, longAffiliateLink);
-                    if (i > 0) await new Promise(r => setTimeout(r, 200));
+                    console.log(`[Bước 2] Link ${i+1} Affiliate:`, longAffiliateLink);
 
                     const shortLink = await shortenWithTinyURL(longAffiliateLink, apiKey);
-                    console.log(`[Link ${i+1}] Shortened:`, shortLink);
+                    console.log(`[Bước 2] Link ${i+1} Shortened:`, shortLink);
+                    
                     if (shortLink) {
+                        // Thay thế link gốc (đình dính) bằng link ngắn
                         const escapedLink = originalLink.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
                         const replacementRegex = new RegExp(escapedLink, 'g');
                         newText = newText.replace(replacementRegex, shortLink);
-                        console.log(`[Link ${i+1}] OK:`, shortLink);
+                        console.log(`[Bước 2] Link ${i+1} OK:`, shortLink);
                     } else {
                         // === QUAN TRỌNG: GẶP LỖI LÀ DỪNG NGAY ===
-                        console.error(`[Link ${i+1}] LỖI: API trả về null`);
+                        console.error(`[Bước 2] Link ${i+1} LỖI: API trả về null`);
                         hasError = true;
                         break; // Thoát khỏi vòng lặp ngay lập tức
                     }
+
+                    if (i > 0) await new Promise(r => setTimeout(r, 200));
                 } catch (error) {
-                    console.error("Lỗi ngoại lệ:", error);
+                    console.error(`[Bước 2] Lỗi ngoại lệ:`, error);
                     hasError = true;
                     break;
                 }
