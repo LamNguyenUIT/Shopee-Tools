@@ -313,17 +313,76 @@
 
         // Trích xuất link sản phẩm chuẩn từ link đã làm sạch
         function extractProductUrl(cleanedUrl) {
-            // Loại bỏ các query parameters, chỉ giữ phần link chính
-            // Ví dụ: https://shopee.vn/opaanlp/1366408246/28962920663?cid=... → https://shopee.vn/opaanlp/1366408246/28962920663
-            // Hoặc: https://shopee.vn/product/1366408246/28962920663?... → https://shopee.vn/product/1366408246/28962920663
+            // Xử lý nested URL encoding (decode nhiều lần)
+            let decodedUrl = cleanedUrl;
+            let previousUrl = '';
             
-            const urlObj = new URL(cleanedUrl);
-            const pathname = urlObj.pathname;
-            const origin = urlObj.origin;
+            // Giải mã cho đến khi không thể decode thêm nữa
+            while (decodedUrl !== previousUrl) {
+                try {
+                    previousUrl = decodedUrl;
+                    decodedUrl = decodeURIComponent(decodedUrl);
+                } catch (e) {
+                    // Nếu decode lỗi, dừng lại
+                    break;
+                }
+            }
             
-            // Kết hợp origin + pathname để loại bỏ mọi query params
-            const productUrl = origin + pathname;
-            return productUrl;
+            console.log(`[Extract] Raw: ${cleanedUrl}`);
+            console.log(`[Extract] Decoded: ${decodedUrl}`);
+            
+            try {
+                // Trích xuất URL shopee từ các loại link wrapper (bitly, tinyurl, v.v)
+                let finalUrl = decodedUrl;
+                
+                // Nếu link chứa query param "url", lấy giá trị của nó
+                if (finalUrl.includes('?url=')) {
+                    const urlParam = new URL(finalUrl).searchParams.get('url');
+                    if (urlParam) {
+                        finalUrl = urlParam;
+                        console.log(`[Extract] Found url param: ${finalUrl}`);
+                    }
+                }
+                
+                // Nếu link chứa origin_link, trích xuất nó
+                if (finalUrl.includes('origin_link=')) {
+                    const match = finalUrl.match(/origin_link=([^&]+)/);
+                    if (match) {
+                        let originLink = decodeURIComponent(match[1]);
+                        // Decode thêm lần nữa nếu cần
+                        try {
+                            const decodedAgain = decodeURIComponent(originLink);
+                            if (decodedAgain !== originLink) {
+                                originLink = decodedAgain;
+                            }
+                        } catch (e) {}
+                        finalUrl = originLink;
+                        console.log(`[Extract] Found origin_link: ${finalUrl}`);
+                    }
+                }
+                
+                // Parse URL để lấy origin + pathname
+                const urlObj = new URL(finalUrl);
+                let pathname = urlObj.pathname;
+                const origin = urlObj.origin;
+                
+                // Loại bỏ /universal-link/ nếu có
+                pathname = pathname.replace(/\/universal-link\//g, '/');
+                // Loại bỏ dấu / thừa
+                pathname = pathname.replace(/\/+/g, '/');
+                
+                // Xảy dựng URL cuối cùng
+                const productUrl = origin + pathname;
+                console.log(`[Extract] Final: ${productUrl}`);
+                
+                return productUrl;
+            } catch (e) {
+                console.error(`[Extract] Error parsing URL: ${e.message}`);
+                // Nếu lỗi, trả về URL đã decode ít nhất
+                const urlObj = new URL(decodedUrl);
+                const pathname = urlObj.pathname.replace(/\/universal-link\//g, '/').replace(/\/+/g, '/');
+                return urlObj.origin + pathname;
+            }
         }
 
         async function processLinks() {
